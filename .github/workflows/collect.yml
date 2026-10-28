@@ -1,0 +1,176 @@
+name: Collecte
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      catalogue:
+        description: Collecter aussi le catalogue
+        type: boolean
+        default: false
+      prices:
+        description: Collecter les prix
+        type: boolean
+        default: true
+      languages:
+        description: Langues séparées par des virgules (vide = toutes)
+        type: string
+        default: ""
+      code_ref:
+        description: Branche ou tag de cartograph à installer
+        type: string
+        default: main
+
+permissions: {}
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Collecte du jour
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: write # publier le catalogue dans la Release `catalogue`
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Installer cartograph
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: AntoanetaStoyanova/cartograph
+          ref: ${{ inputs.code_ref || 'main' }}
+          path: code
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          working-directory: code
+          enable-cache: true
+          cache-dependency-glob: code/uv.lock
+
+      - name: Installer les dépendances
+        working-directory: code
+        run: uv sync --frozen --no-dev
+
+      - name: Choisir les étapes
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_CATALOGUE: ${{ inputs.catalogue }}
+          INPUT_PRICES: ${{ inputs.prices }}
+        run: |
+          catalogue=false
+          prices=true
+          if [[ "$EVENT" == schedule ]]; then
+            [[ "$(date -u +%u)" == 1 ]] && catalogue=true
+          else
+            [[ "$INPUT_CATALOGUE" == true ]] && catalogue=true
+            [[ "$INPUT_PRICES" == true ]] || prices=false
+          fi
+          echo "catalogue=$catalogue" >> "$GITHUB_OUTPUT"
+          echo "prices=$prices" >> "$GITHUB_OUTPUT"
+          echo "Catalogue : $catalogue, prix : $prices"
+
+      # Aussi le jour du catalogue : si sa collecte échoue, les prix utilisent le précédent.
+      - name: Télécharger le dernier catalogue
+        if: steps.plan.outputs.prices == 'true'
+        run: |
+          if ! assets=$(gh release view catalogue --json assets --jq '.assets[].name'); then
+            echo "::notice::Release catalogue absente : aucun catalogue précédent."
+            exit 0
+          fi
+          latest=$(grep -E '^cards-[0-9]{4}-[0-9]{2}-[0-9]{2}\.parquet$' <<< "$assets" | sort | tail -n 1 || true)
+          if [[ -z "$latest" ]]; then
+            echo "::notice::Release catalogue vide."
+            exit 0
+          fi
+          gh release download catalogue --pattern "$latest" --dir "$DATA_DIR/snapshots"
+          echo "Catalogue précédent : $latest"
+
+      # Délai propre à l'étape : les publications tournent même si la collecte s'éternise.
+      - name: Collecter
+        id: collect
+        continue-on-error: true
+        timeout-minutes: 270
+        working-directory: code
+        env:
+          TCGDEX_USER_AGENT: ${{ vars.TCGDEX_USER_AGENT }}
+          CATALOGUE: ${{ steps.plan.outputs.catalogue }}
+          PRICES: ${{ steps.plan.outputs.prices }}
+          LANGUAGES: ${{ inputs.languages }}
+        run: |
+          args=(--data-dir "$DATA_DIR")
+          [[ "$CATALOGUE" == true ]] && args+=(--catalogue)
+          [[ "$PRICES" == true ]] || args+=(--no-prices)
+          [[ -n "$LANGUAGES" ]] && args+=(--languages "$LANGUAGES")
+          uv run --no-sync python -m cartograph.bin.collect.run "${args[@]}"
+
+      - name: Lire le résumé
+        id: summary
+        if: ${{ !cancelled() }}
+        run: |
+          shopt -s nullglob
+          summaries=("$DATA_DIR"/runs/collect-*.json)
+          if (( ${#summaries[@]} == 0 )); then
+            echo "::warning::Aucun résumé : la collecte n'a rien écrit."
+            exit 0
+          fi
+          day=$(jq -r .date "${summaries[0]}")
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+          echo "catalogue=$(jq -r .steps.catalogue.status "${summaries[0]}")" >> "$GITHUB_OUTPUT"
+          jq -c '.steps | map_values({status, fetched, failed: (.failed | length), error})' "${summaries[0]}"
+
+      - name: Publier le catalogue
+        if: ${{ !cancelled() && steps.summary.outputs.catalogue == 'ok' }}
+        env:
+          DAY: ${{ steps.summary.outputs.day }}
+        run: |
+          gh release view catalogue > /dev/null 2>&1 \
+            || gh release create catalogue --title "Catalogue TCGdex" \
+              --notes "Un cards-AAAA-MM-JJ.parquet par semaine, sans aucun prix. Données TCGdex, licence MIT."
+          gh release upload catalogue "$DATA_DIR/snapshots/cards-$DAY.parquet" --clobber
+          echo "Catalogue publié : cards-$DAY.parquet"
+
+      # Prix et brut (qui contient aussi des prix) : dépôt privé uniquement, jamais en artefact.
+      - name: Envoyer prix et brut dans cartograph-prices
+        if: ${{ !cancelled() && steps.summary.outputs.day != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.PRICES_TOKEN }}
+          GH_REPO: AntoanetaStoyanova/cartograph-prices
+          DAY: ${{ steps.summary.outputs.day }}
+        run: |
+          shopt -s nullglob
+          files=("$DATA_DIR"/snapshots/prices-"$DAY".parquet "$DATA_DIR"/raw/*-"$DAY".json.gz)
+          if (( ${#files[@]} == 0 )); then
+            echo "Aucun fichier de prix ni brut à envoyer."
+            exit 0
+          fi
+          tag="data-${DAY:0:7}"
+          gh release view "$tag" > /dev/null 2>&1 \
+            || gh release create "$tag" --title "$tag" --notes "Prix et JSON brut du mois ${DAY:0:7}."
+          gh release upload "$tag" "${files[@]}" --clobber
+          printf 'Envoyé dans %s : %s\n' "$tag" "${files[*]##*/}"
+
+      - name: Garder le résumé et le log
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: collecte-${{ github.run_id }}
+          path: |
+            data/runs/collect-*.json
+            code/logs/*.log
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Signaler l'échec de la collecte
+        if: ${{ steps.collect.outcome == 'failure' }}
+        run: |
+          echo "::error::La collecte a échoué : voir le résumé et le log en artefact."
+          exit 1
