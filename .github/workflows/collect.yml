@@ -2,13 +2,15 @@ name: Collecte
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 3 * * 1"
+    # Rattrapage : ne collecte que si les fichiers du lundi manquent.
+    - cron: "17 3 * * 2"
   workflow_dispatch:
     inputs:
       catalogue:
         description: Collecter aussi le catalogue
         type: boolean
-        default: false
+        default: true
       prices:
         description: Collecter les prix
         type: boolean
@@ -29,8 +31,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    name: Semaine déjà collectée ?
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Chercher les fichiers du lundi
+        id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          PRICES_TOKEN: ${{ secrets.PRICES_TOKEN }}
+        run: |
+          skip=false
+          if [[ "$EVENT" == schedule && "$(date -u +%u)" == 2 ]]; then
+            monday=$(date -u -d yesterday +%F)
+            cards=$(gh release view catalogue -R "$GITHUB_REPOSITORY" \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+            prices=$(GH_TOKEN="$PRICES_TOKEN" gh release view "data-${monday:0:7}" \
+              -R AntoanetaStoyanova/cartograph-prices \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+            if grep -qxF "cards-$monday.parquet" <<< "$cards" \
+              && grep -qxF "prices-$monday.parquet" <<< "$prices"; then
+              skip=true
+            fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+          echo "Semaine déjà collectée : $skip"
+
   collect:
-    name: Collecte du jour
+    name: Collecte de la semaine
+    needs: check
+    if: needs.check.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     permissions:
@@ -53,7 +88,7 @@ jobs:
         with:
           working-directory: code
           enable-cache: true
-          cache-dependency-glob: code/uv.lock
+          cache-dependency-glob: uv.lock # relatif à working-directory
 
       - name: Installer les dépendances
         working-directory: code
@@ -69,7 +104,7 @@ jobs:
           catalogue=false
           prices=true
           if [[ "$EVENT" == schedule ]]; then
-            [[ "$(date -u +%u)" == 1 ]] && catalogue=true
+            catalogue=true
           else
             [[ "$INPUT_CATALOGUE" == true ]] && catalogue=true
             [[ "$INPUT_PRICES" == true ]] || prices=false
