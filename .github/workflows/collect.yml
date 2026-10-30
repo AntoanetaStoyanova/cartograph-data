@@ -40,6 +40,12 @@ jobs:
       GH_REPO: ${{ github.repository }}
       DATA_DIR: ${{ github.workspace }}/data
     steps:
+      # Jamais bloquant : une panne de healthchecks.io finit en alerte, pas en échec.
+      - name: Signaler le début
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        run: curl -fsS -m 10 --retry 5 -o /dev/null "$HC_URL/start" || true
+
       - name: Installer cartograph
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -115,13 +121,16 @@ jobs:
       - name: Lire le résumé
         id: summary
         if: ${{ !cancelled() }}
+        working-directory: code
         run: |
           shopt -s nullglob
           summaries=("$DATA_DIR"/runs/collect-*.json)
           if (( ${#summaries[@]} == 0 )); then
             echo "::warning::Aucun résumé : la collecte n'a rien écrit."
+            echo "Aucun résumé : la collecte n'a rien écrit." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          uv run --no-sync python -m cartograph.bin.collect.report "${summaries[0]}" >> "$GITHUB_STEP_SUMMARY"
           day=$(jq -r .date "${summaries[0]}")
           echo "day=$day" >> "$GITHUB_OUTPUT"
           echo "catalogue=$(jq -r .steps.catalogue.status "${summaries[0]}")" >> "$GITHUB_OUTPUT"
@@ -168,6 +177,20 @@ jobs:
             code/logs/*.log
           retention-days: 7
           if-no-files-found: warn
+
+      # Aussi après un délai dépassé ou une installation ratée : /fail alerte tout de suite.
+      - name: Signaler la fin
+        if: always()
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+          JOB_STATUS: ${{ job.status }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+        run: |
+          endpoint="$HC_URL"
+          if [[ "$JOB_STATUS" != success || "$COLLECT_OUTCOME" != success ]]; then
+            endpoint="$HC_URL/fail"
+          fi
+          curl -fsS -m 10 --retry 5 -o /dev/null "$endpoint" || true
 
       - name: Signaler l'échec de la collecte
         if: ${{ steps.collect.outcome == 'failure' }}
