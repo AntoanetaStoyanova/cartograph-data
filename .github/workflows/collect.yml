@@ -6,9 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       catalogue:
-        description: Collecter aussi le catalogue
-        type: boolean
-        default: false
+        description: "Catalogue : auto = le lundi (UTC)"
+        type: choice
+        options: [auto, oui, non]
+        default: auto
       prices:
         description: Collecter les prix
         type: boolean
@@ -74,11 +75,14 @@ jobs:
         run: |
           catalogue=false
           prices=true
-          if [[ "$EVENT" == schedule ]]; then
-            [[ "$(date -u +%u)" == 1 ]] && catalogue=true
-          else
-            [[ "$INPUT_CATALOGUE" == true ]] && catalogue=true
-            [[ "$INPUT_PRICES" == true ]] || prices=false
+          # Un déclenchement planifié n'a aucun paramètre : il vaut catalogue auto et prix.
+          case "${INPUT_CATALOGUE:-auto}" in
+            oui) catalogue=true ;;
+            non) ;;
+            *) if [[ "$(date -u +%u)" == 1 ]]; then catalogue=true; fi ;;
+          esac
+          if [[ "$EVENT" != schedule && "$INPUT_PRICES" != true ]]; then
+            prices=false
           fi
           echo "catalogue=$catalogue" >> "$GITHUB_OUTPUT"
           echo "prices=$prices" >> "$GITHUB_OUTPUT"
