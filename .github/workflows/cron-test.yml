@@ -1,0 +1,16 @@
+name: Test du cron
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions: {}
+
+jobs:
+  tick:
+    name: Heure de déclenchement
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Afficher la date
+        run: date -u
