@@ -1,8 +1,6 @@
 name: Collecte
 
 on:
-  schedule:
-    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       catalogue:
@@ -69,21 +67,16 @@ jobs:
       - name: Choisir les étapes
         id: plan
         env:
-          EVENT: ${{ github.event_name }}
           INPUT_CATALOGUE: ${{ inputs.catalogue }}
           INPUT_PRICES: ${{ inputs.prices }}
         run: |
           catalogue=false
-          prices=true
-          # Un déclenchement planifié n'a aucun paramètre : il vaut catalogue auto et prix.
-          case "${INPUT_CATALOGUE:-auto}" in
+          prices=$INPUT_PRICES
+          case "$INPUT_CATALOGUE" in
             oui) catalogue=true ;;
             non) ;;
             *) if [[ "$(date -u +%u)" == 1 ]]; then catalogue=true; fi ;;
           esac
-          if [[ "$EVENT" != schedule && "$INPUT_PRICES" != true ]]; then
-            prices=false
-          fi
           echo "catalogue=$catalogue" >> "$GITHUB_OUTPUT"
           echo "prices=$prices" >> "$GITHUB_OUTPUT"
           echo "Catalogue : $catalogue, prix : $prices"
