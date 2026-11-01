@@ -7,11 +7,19 @@ Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartog
 - **Catalogue** : un fichier `cards-AAAA-MM-JJ.parquet` par semaine dans la Release `catalogue`. Il ne contient aucun prix ni aucune image, seulement les liens vers les images.
 - **Résumés d'exécution** : nombres de cartes, échecs et fichiers écrits, sans prix.
 
+## Déclenchement
+
+- **Chaque jour à 03:17 UTC**, la tâche cron-job.org « Collecte cartograph » appelle l'API GitHub `workflow_dispatch` de `collect.yml` (réglages et jeton dans « Secrets, variables et services », plus bas ; le jeton expire le 30 octobre 2027). GitHub Actions exécute la collecte.
+- **Pas de cron GitHub** (`on: schedule`) : GitHub ne garantit pas ses déclenchements, et celui de 03:17 UTC n'est pas parti les 29 et 30 octobre 2026.
+- **Paramètres** : l'appel de cron-job.org n'en envoie aucun, les valeurs par défaut s'appliquent. `catalogue` vaut `auto` (catalogue le lundi, en UTC), `oui` ou `non` pour forcer ; `prices` vaut `true` ; `languages` vide (toutes) ; `code_ref` vaut `main`.
+- **Relance manuelle** : onglet *Actions*, `Collecte`, *Run workflow*, ou `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`. Relancer le même jour remplace les fichiers du jour. Un lundi, `auto` relance aussi le catalogue (≈ 3 h 45) : choisir `non` pour les prix seuls (`-f catalogue=non`).
+
 ## Surveillance
 
 - **Résumé** : chaque exécution affiche dans sa page le statut des étapes, les nombres de cartes, les échecs, les fichiers écrits et la durée, sans prix.
-- **healthchecks.io** : le workflow envoie un signal au début et à la fin de chaque exécution (secret `HEALTHCHECKS_PING_URL`). Une exécution en échec envoie `/fail`, ce qui déclenche un e-mail immédiat. Sans signal de fin 5 heures après le cron de 03:17 UTC, un e-mail part aussi : c'est la seule alerte quand GitHub ne lance pas le cron.
+- **healthchecks.io** : le workflow envoie un signal au début et à la fin de chaque exécution (secret `HEALTHCHECKS_PING_URL`). Une exécution en échec envoie `/fail`, ce qui déclenche un e-mail immédiat. Sans signal de fin 5 heures après 03:17 UTC, un e-mail part aussi : c'est l'alerte quand aucune collecte n'est lancée (cron-job.org en panne, jeton expiré) ou qu'elle reste bloquée.
 - **GitHub** : un e-mail est envoyé pour chaque exécution en échec.
+- **cron-job.org** : un e-mail au premier appel en échec (réponse autre que `204`) et quand la tâche est désactivée.
 
 ## Secrets, variables et services
 
