@@ -139,6 +139,7 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: code
         env:
+          TCGDEX_USER_AGENT: ${{ vars.TCGDEX_USER_AGENT }} # exigé à l'import de cartograph.config
           DAY: ${{ steps.summary.outputs.day }}
           RUN_ID: ${{ github.run_id }}
         run: |
