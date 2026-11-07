@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     permissions:
-      contents: write # publier le catalogue dans la Release `catalogue`
+      contents: write # publier le catalogue dans la Release `catalogue`, commiter le manifeste
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -133,36 +133,81 @@ jobs:
           echo "catalogue=$(jq -r .steps.catalogue.status "${summaries[0]}")" >> "$GITHUB_OUTPUT"
           jq -c '.steps | map_values({status, fetched, failed: (.failed | length), error})' "${summaries[0]}"
 
-      - name: Publier le catalogue
-        if: ${{ !cancelled() && steps.summary.outputs.catalogue == 'ok' }}
+      # Destinations prises du manifeste : la règle fichier → Release n'existe que dans cartograph.
+      - name: Calculer le manifeste
+        id: manifest
+        if: ${{ !cancelled() }}
+        working-directory: code
         env:
           DAY: ${{ steps.summary.outputs.day }}
+          RUN_ID: ${{ github.run_id }}
         run: |
+          args=(--data-dir "$DATA_DIR" --run-id "$RUN_ID")
+          if [[ -n "$DAY" ]]; then
+            args+=(--summary "$DATA_DIR/runs/collect-$DAY.json")
+          else
+            DAY=$(date -u +%F)
+          fi
+          # Taille inconnue (-1) plutôt qu'un manifeste manquant, qui bloquerait les envois.
+          repo_kib=$(gh api "repos/$GH_REPO" --jq .size) || repo_kib=-1
+          uv run --no-sync python -m cartograph.bin.collect.manifest "${args[@]}" \
+            --date "$DAY" --repo-kib="$repo_kib" > "$RUNNER_TEMP/manifest.json"
+          echo "day=$DAY" >> "$GITHUB_OUTPUT"
+          jq -c '.files[] | {name, release, rows}' "$RUNNER_TEMP/manifest.json"
+          jq -r '.files[] | select(.sha256 == null) | "::warning::Absent du disque, non envoyé : \(.name)"' "$RUNNER_TEMP/manifest.json"
+
+      - name: Publier le catalogue
+        if: ${{ !cancelled() && steps.summary.outputs.catalogue == 'ok' && steps.manifest.outcome == 'success' }}
+        run: |
+          # Une erreur de jq doit faire échouer l'étape, pas passer pour « rien à envoyer ».
+          list=$(jq -r '.files[] | select(.release == "cartograph-data/catalogue" and .sha256 != null) | .name' "$RUNNER_TEMP/manifest.json")
+          if [[ -z "$list" ]]; then
+            echo "Aucun catalogue à publier."
+            exit 0
+          fi
+          mapfile -t names <<< "$list"
           gh release view catalogue > /dev/null 2>&1 \
             || gh release create catalogue --title "Catalogue TCGdex" \
               --notes "Un cards-AAAA-MM-JJ.parquet par semaine, sans aucun prix. Données TCGdex, licence MIT."
-          gh release upload catalogue "$DATA_DIR/snapshots/cards-$DAY.parquet" --clobber
-          echo "Catalogue publié : cards-$DAY.parquet"
+          gh release upload catalogue "${names[@]/#/$DATA_DIR/snapshots/}" --clobber
+          echo "Catalogue publié : ${names[*]}"
 
       # Prix et brut (qui contient aussi des prix) : dépôt privé uniquement, jamais en artefact.
       - name: Envoyer prix et brut dans cartograph-prices
-        if: ${{ !cancelled() && steps.summary.outputs.day != '' }}
+        if: ${{ !cancelled() && steps.manifest.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ secrets.PRICES_TOKEN }}
           GH_REPO: AntoanetaStoyanova/cartograph-prices
-          DAY: ${{ steps.summary.outputs.day }}
         run: |
-          shopt -s nullglob
-          files=("$DATA_DIR"/snapshots/prices-"$DAY".parquet "$DATA_DIR"/raw/*-"$DAY".json.gz)
-          if (( ${#files[@]} == 0 )); then
+          manifest="$RUNNER_TEMP/manifest.json"
+          locate() {
+            for dir in snapshots raw; do
+              if [[ -f "$DATA_DIR/$dir/$1" ]]; then
+                echo "$DATA_DIR/$dir/$1"
+                return 0
+              fi
+            done
+            return 1
+          }
+          # Une erreur de jq doit faire échouer l'étape, pas passer pour « rien à envoyer ».
+          list=$(jq -r '[.files[] | select(.sha256 != null) | .release | select(startswith("cartograph-prices/")) | ltrimstr("cartograph-prices/")] | unique[]' "$manifest")
+          if [[ -z "$list" ]]; then
             echo "Aucun fichier de prix ni brut à envoyer."
             exit 0
           fi
-          tag="data-${DAY:0:7}"
-          gh release view "$tag" > /dev/null 2>&1 \
-            || gh release create "$tag" --title "$tag" --notes "Prix et JSON brut du mois ${DAY:0:7}."
-          gh release upload "$tag" "${files[@]}" --clobber
-          printf 'Envoyé dans %s : %s\n' "$tag" "${files[*]##*/}"
+          mapfile -t tags <<< "$list"
+          for tag in "${tags[@]}"; do
+            list=$(jq -r --arg release "cartograph-prices/$tag" '.files[] | select(.release == $release and .sha256 != null) | .name' "$manifest")
+            mapfile -t names <<< "$list"
+            files=()
+            for name in "${names[@]}"; do
+              files+=("$(locate "$name")")
+            done
+            gh release view "$tag" > /dev/null 2>&1 \
+              || gh release create "$tag" --title "$tag" --notes "Prix et JSON brut du mois ${tag#data-}."
+            gh release upload "$tag" "${files[@]}" --clobber
+            printf 'Envoyé dans %s : %s\n' "$tag" "${names[*]}"
+          done
 
       - name: Garder le résumé et le log
         if: ${{ !cancelled() }}
@@ -174,6 +219,23 @@ jobs:
             code/logs/*.log
           retention-days: 7
           if-no-files-found: warn
+
+      # Jamais bloquant : un manifeste raté ne change ni le statut ni le signal healthchecks.io.
+      - name: Commiter le manifeste
+        if: ${{ !cancelled() && steps.manifest.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          DAY: ${{ steps.manifest.outputs.day }}
+        run: |
+          path="manifest/${DAY:0:4}/$DAY.json"
+          args=(-X PUT "repos/$GH_REPO/contents/$path"
+            -f message="chore: manifeste du $DAY"
+            -f content="$(base64 -w0 "$RUNNER_TEMP/manifest.json")")
+          # Relance le même jour : remplacer le fichier existant demande son sha.
+          if sha=$(gh api "repos/$GH_REPO/contents/$path" --jq .sha 2> /dev/null); then
+            args+=(-f sha="$sha")
+          fi
+          gh api "${args[@]}" --jq '"Manifeste commité : " + .commit.sha'
 
       # Aussi après un délai dépassé ou une installation ratée : /fail alerte tout de suite.
       - name: Signaler la fin

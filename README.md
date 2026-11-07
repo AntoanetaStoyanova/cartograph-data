@@ -6,6 +6,19 @@ Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartog
 
 - **Catalogue** : un fichier `cards-AAAA-MM-JJ.parquet` par semaine dans la Release `catalogue`. Il ne contient aucun prix ni aucune image, seulement les liens vers les images.
 - **Résumés d'exécution** : nombres de cartes, échecs et fichiers écrits, sans prix.
+- **Manifestes** : un `manifest/AAAA/AAAA-MM-JJ.json` commité par chaque exécution (voir « Manifeste »).
+
+## Manifeste
+
+Chaque exécution commite `manifest/AAAA/AAAA-MM-JJ.json` (auteur `github-actions[bot]`), même en échec. Une relance le même jour remplace le manifeste du jour. Il ne contient aucun prix ni identifiant de carte, seulement des statuts, des nombres et des empreintes :
+
+- `date`, `run_id` : jour de la collecte (UTC) et exécution GitHub Actions ;
+- `summary` : `false` si la collecte n'a écrit aucun résumé (`steps` et `files` sont alors vides) ;
+- `steps` : par étape (`catalogue`, `prices`), `status`, `fetched` (cartes ou produits récupérés), `failed` (nombre en échec) ;
+- `files` : par fichier, `name`, `release` (Release de destination), `rows`, `bytes`, `sha256` (`null` si le fichier manquait sur la machine, il n'est alors pas envoyé) ;
+- `repo_kib` : taille de ce dépôt selon GitHub, en Kio (`-1` si GitHub ne l'a pas donnée).
+
+Les étapes d'envoi lisent `files` : un fichier part dans la Release que donne le manifeste, et nulle part ailleurs. Pour vérifier un fichier téléchargé : `sha256sum <fichier>` doit donner son `sha256`.
 
 ## Déclenchement
 
