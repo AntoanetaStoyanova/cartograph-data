@@ -31,7 +31,7 @@ jobs:
   collect:
     name: Collecte du jour
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 350
     permissions:
       contents: write # publier le catalogue dans la Release `catalogue`, commiter le manifeste
     env:
@@ -101,7 +101,7 @@ jobs:
       - name: Collecter
         id: collect
         continue-on-error: true
-        timeout-minutes: 270
+        timeout-minutes: 330
         working-directory: code
         env:
           TCGDEX_USER_AGENT: ${{ vars.TCGDEX_USER_AGENT }}
