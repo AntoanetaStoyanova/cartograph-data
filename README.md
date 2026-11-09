@@ -25,7 +25,7 @@ Les étapes d'envoi lisent `files` : un fichier part dans la Release que donne l
 - **Chaque jour à 03:17 UTC**, la tâche cron-job.org « Collecte cartograph » appelle l'API GitHub `workflow_dispatch` de `collect.yml` (réglages et jeton dans « Secrets, variables et services », plus bas ; le jeton expire le 30 octobre 2027). GitHub Actions exécute la collecte.
 - **Pas de cron GitHub** (`on: schedule`) : GitHub ne garantit pas ses déclenchements, et celui de 03:17 UTC n'est pas parti les 29 et 30 octobre 2026.
 - **Paramètres** : l'appel de cron-job.org n'en envoie aucun, les valeurs par défaut s'appliquent. `catalogue` vaut `auto` (catalogue le lundi, en UTC), `oui` ou `non` pour forcer ; `prices` vaut `true` ; `languages` vide (toutes) ; `code_ref` vaut `main`.
-- **Relance manuelle** : onglet *Actions*, `Collecte`, *Run workflow*, ou `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`. Relancer le même jour remplace les fichiers du jour. Un lundi, `auto` relance aussi le catalogue (≈ 3 h 45) : choisir `non` pour les prix seuls (`-f catalogue=non`).
+- **Relance manuelle** : onglet *Actions*, `Collecte`, *Run workflow*, ou `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`. Relancer le même jour remplace les fichiers du jour. Un lundi, `auto` relance aussi le catalogue (2 h 30 à 3 h 15, prix lus dans ses fiches) : choisir `non` pour les prix seuls (`-f catalogue=non`).
 
 ## Surveillance
 
@@ -68,7 +68,7 @@ Après une longue pause ou une alerte qui dure, dans cet ordre :
 3. **Version de l'API GitHub** : `2022-11-28` est dépréciée depuis le 10 mars 2026 et ne sera plus acceptée après le 10 mars 2028. Avant cette date, ou si l'appel répond par une erreur de version, mettre une version prise en charge dans l'en-tête `X-GitHub-Api-Version` de la tâche cron-job.org (liste sur <https://docs.github.com/rest/about-the-rest-api/api-versions>).
 4. **healthchecks.io** : le contrôle doit exister avec les réglages ci-dessus. S'il a été recréé, remplacer le secret `HEALTHCHECKS_PING_URL`.
 5. **cron-job.org** : réactiver la tâche (cron-job.org la désactive après des échecs répétés), puis la tester avec son bouton de test : réponse `204`, et une exécution `workflow_dispatch` apparaît dans l'onglet *Actions*.
-6. **Exécution de contrôle** : laisser finir l'exécution lancée par ce test (≈ 1 h 15, ≈ 3 h 45 un lundi avec le catalogue). Elle doit réussir, publier ses fichiers du jour et repasser le contrôle healthchecks.io au vert. Sans test cron-job.org, la lancer à la main : `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`, jamais avec une liste `languages` réduite, qui remplacerait les fichiers du jour par des fichiers incomplets.
+6. **Exécution de contrôle** : laisser finir l'exécution lancée par ce test (≈ 1 h 15, 2 h 30 à 3 h 15 un lundi avec le catalogue). Elle doit réussir, publier ses fichiers du jour et repasser le contrôle healthchecks.io au vert. Sans test cron-job.org, la lancer à la main : `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`, jamais avec une liste `languages` réduite, qui remplacerait les fichiers du jour par des fichiers incomplets.
 
 ## Ce qui n'est pas publié
 
