@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-12",
+  "files": [
+    {
+      "bytes": 1391960,
+      "name": "prices-2026-11-12.parquet",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 30272,
+      "sha256": "9eded3d7fb41a369aec3c3c8e470c34ed218b1558527856e055976ddf25ef33e"
+    },
+    {
+      "bytes": 1645190,
+      "name": "prices-2026-11-12.json.gz",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 30272,
+      "sha256": "c9019a10e586b94c68756fd737d27b08f9162725f8d3e649974e92e4fb14f025"
+    }
+  ],
+  "repo_kib": 32,
+  "run_id": 43147155855,
+  "steps": {
+    "catalogue": {
+      "failed": 0,
+      "fetched": 0,
+      "status": "skipped"
+    },
+    "prices": {
+      "failed": 0,
+      "fetched": 30272,
+      "status": "ok"
+    }
+  },
+  "summary": true
+}
