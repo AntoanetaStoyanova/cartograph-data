@@ -79,3 +79,7 @@ Les prix (Cardmarket, TCGplayer) et les réponses brutes de l'API ne sont jamais
 Le catalogue provient de [TCGdex](https://github.com/tcgdex/cards-database), sous licence MIT, © TCGdex.
 
 Ce projet n'est ni produit ni soutenu par Nintendo, The Pokémon Company, Creatures ou Game Freak. Pokémon et les noms associés sont des marques de leurs propriétaires.
+
+## Licence
+
+Le workflow, les manifestes et la documentation de ce dépôt sont sous licence MIT (voir [`LICENSE`](LICENSE)). Le catalogue publié dans la Release `catalogue` reste sous la licence MIT de TCGdex, © TCGdex.
