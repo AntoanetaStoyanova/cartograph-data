@@ -1,10 +1,13 @@
 # cartograph-data
 
-Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartograph) : il contient le workflow qui collecte chaque jour les prix et chaque lundi le catalogue des cartes Pokémon depuis [TCGdex](https://tcgdex.dev). Le code du collecteur vit dans `cartograph` et est installé à chaque exécution.
+Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartograph) : il contient le workflow qui collecte chaque jour les prix et les nouvelles cartes, et chaque lundi le catalogue et les sets des cartes Pokémon depuis [TCGdex](https://tcgdex.dev). Le code du collecteur vit dans `cartograph` et est installé à chaque exécution.
 
 ## Ce qui est publié
 
-- **Catalogue** : un fichier `cards-AAAA-MM-JJ.parquet` par semaine dans la Release `catalogue`. Il ne contient aucun prix ni aucune image, seulement les liens vers les images.
+- **Catalogue**, dans la Release `catalogue`, sans aucun prix ni aucune image (seulement les liens vers les images) :
+  - `cards-AAAA-MM-JJ.parquet` : catalogue complet, chaque lundi ;
+  - `sets-AAAA-MM-JJ.parquet` : sets de chaque langue avec date de sortie, série et sigle, chaque lundi ;
+  - `new-cards-AAAA-MM-JJ.parquet` : fiches des cartes absentes du dernier catalogue complet, les autres jours, seulement s'il y en a (reprises chaque jour jusqu'au lundi).
 - **Résumés d'exécution** : nombres de cartes, échecs et fichiers écrits, sans prix.
 - **Manifestes** : un `manifest/AAAA/AAAA-MM-JJ.json` commité par chaque exécution (voir « Manifeste »).
 
@@ -14,7 +17,7 @@ Chaque exécution commite `manifest/AAAA/AAAA-MM-JJ.json` (auteur `github-action
 
 - `date`, `run_id` : jour de la collecte (UTC) et exécution GitHub Actions ;
 - `summary` : `false` si la collecte n'a écrit aucun résumé (`steps` et `files` sont alors vides) ;
-- `steps` : par étape (`catalogue`, `prices`), `status`, `fetched` (cartes ou produits récupérés), `failed` (nombre en échec) ;
+- `steps` : par étape (`catalogue`, `sets`, `new_cards`, `prices`), `status`, `fetched` (cartes, sets ou produits récupérés), `failed` (nombre en échec) ;
 - `files` : par fichier, `name`, `release` (Release de destination), `rows`, `bytes`, `sha256` (`null` si le fichier manquait sur la machine, il n'est alors pas envoyé) ;
 - `repo_kib` : taille de ce dépôt selon GitHub, en Kio (`-1` si GitHub ne l'a pas donnée).
 

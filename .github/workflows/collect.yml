@@ -82,6 +82,7 @@ jobs:
           echo "Catalogue : $catalogue, prix : $prices"
 
       # Aussi le jour du catalogue : si sa collecte échoue, les prix utilisent le précédent.
+      # Les autres jours, les nouvelles cartes sont celles absentes de ce catalogue.
       - name: Télécharger le dernier catalogue
         if: steps.plan.outputs.prices == 'true'
         run: |
@@ -130,7 +131,6 @@ jobs:
           uv run --no-sync python -m cartograph.bin.collect.report "${summaries[0]}" >> "$GITHUB_STEP_SUMMARY"
           day=$(jq -r .date "${summaries[0]}")
           echo "day=$day" >> "$GITHUB_OUTPUT"
-          echo "catalogue=$(jq -r .steps.catalogue.status "${summaries[0]}")" >> "$GITHUB_OUTPUT"
           jq -c '.steps | map_values({status, fetched, failed: (.failed | length), error})' "${summaries[0]}"
 
       # Destinations prises du manifeste : la règle fichier → Release n'existe que dans cartograph.
@@ -157,21 +157,31 @@ jobs:
           jq -c '.files[] | {name, release, rows}' "$RUNNER_TEMP/manifest.json"
           jq -r '.files[] | select(.sha256 == null) | "::warning::Absent du disque, non envoyé : \(.name)"' "$RUNNER_TEMP/manifest.json"
 
+      # Sans condition sur l'étape catalogue : les new-cards s'écrivent les jours sans catalogue,
+      # et le manifeste ne liste que les fichiers écrits.
       - name: Publier le catalogue
-        if: ${{ !cancelled() && steps.summary.outputs.catalogue == 'ok' && steps.manifest.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.manifest.outcome == 'success' }}
+        env:
+          NOTES: >-
+            Sans aucun prix. Données TCGdex, licence MIT.
+            cards-AAAA-MM-JJ.parquet : catalogue complet, chaque lundi.
+            sets-AAAA-MM-JJ.parquet : sets avec date de sortie et série, chaque lundi.
+            new-cards-AAAA-MM-JJ.parquet : cartes absentes du dernier catalogue, les autres jours s'il y en a.
         run: |
           # Une erreur de jq doit faire échouer l'étape, pas passer pour « rien à envoyer ».
           list=$(jq -r '.files[] | select(.release == "cartograph-data/catalogue" and .sha256 != null) | .name' "$RUNNER_TEMP/manifest.json")
           if [[ -z "$list" ]]; then
-            echo "Aucun catalogue à publier."
+            echo "Aucun fichier public à publier."
             exit 0
           fi
           mapfile -t names <<< "$list"
-          gh release view catalogue > /dev/null 2>&1 \
-            || gh release create catalogue --title "Catalogue TCGdex" \
-              --notes "Un cards-AAAA-MM-JJ.parquet par semaine, sans aucun prix. Données TCGdex, licence MIT."
+          if gh release view catalogue > /dev/null 2>&1; then
+            gh release edit catalogue --notes "$NOTES"
+          else
+            gh release create catalogue --title "Catalogue TCGdex" --notes "$NOTES"
+          fi
           gh release upload catalogue "${names[@]/#/$DATA_DIR/snapshots/}" --clobber
-          echo "Catalogue publié : ${names[*]}"
+          echo "Publié dans catalogue : ${names[*]}"
 
       # Prix et brut (qui contient aussi des prix) : dépôt privé uniquement, jamais en artefact.
       - name: Envoyer prix et brut dans cartograph-prices
