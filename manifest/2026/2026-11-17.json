@@ -2,31 +2,62 @@
   "date": "2026-11-17",
   "files": [
     {
-      "bytes": 1397190,
-      "name": "prices-2026-11-17.parquet",
-      "release": "cartograph-prices/data-2026-11",
-      "rows": 30273,
-      "sha256": "32b3da6bdc5298500eba0bf971f17864eb692e6040f8a8530bd3acc88c3dca79"
+      "bytes": 49214,
+      "name": "sets-2026-11-17.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 628,
+      "sha256": "eb971b826edfc8def927f6fd553ad0333985719ce2377a08e6176ac657ea08ad"
     },
     {
-      "bytes": 1643960,
+      "bytes": 13856,
+      "name": "new-cards-2026-11-17.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 10,
+      "sha256": "c815a30435355a4fef5a065ffde03f806d2dfe65f105092fd58253bda48f4f59"
+    },
+    {
+      "bytes": 4071,
+      "name": "new-cards-2026-11-17.json.gz",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 10,
+      "sha256": "1ef419343fb1e7f1655c013baff8d535098bbed860bba2e75584dd231b302a10"
+    },
+    {
+      "bytes": 1396704,
+      "name": "prices-2026-11-17.parquet",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 30276,
+      "sha256": "8f17643295b861b6384af1c19a382f57502d002ee8b2821a860bbb13c76156c8"
+    },
+    {
+      "bytes": 1649333,
       "name": "prices-2026-11-17.json.gz",
       "release": "cartograph-prices/data-2026-11",
-      "rows": 30273,
-      "sha256": "159fa40513017d19477e41b5e02d3f57b71c8bac029168f14296ac6ca578f046"
+      "rows": 30276,
+      "sha256": "4233bef3cea464d4788aa859957920ea76634427df33eb51238f5e700882b1f5"
     }
   ],
-  "repo_kib": 45,
-  "run_id": 44009102817,
+  "repo_kib": 52,
+  "run_id": 44090970922,
   "steps": {
     "catalogue": {
       "failed": 0,
       "fetched": 0,
       "status": "skipped"
     },
+    "new_cards": {
+      "failed": 0,
+      "fetched": 10,
+      "status": "ok"
+    },
     "prices": {
-      "failed": 2,
-      "fetched": 30273,
+      "failed": 3,
+      "fetched": 30276,
+      "status": "ok"
+    },
+    "sets": {
+      "failed": 0,
+      "fetched": 628,
       "status": "ok"
     }
   },
