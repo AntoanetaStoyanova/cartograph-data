@@ -165,7 +165,7 @@ jobs:
           NOTES: >-
             Sans aucun prix. Données TCGdex, licence MIT.
             cards-AAAA-MM-JJ.parquet : catalogue complet, chaque lundi.
-            sets-AAAA-MM-JJ.parquet : sets avec date de sortie et série, chaque lundi.
+            sets-AAAA-MM-JJ.parquet : sets avec date de sortie et série, chaque jour.
             new-cards-AAAA-MM-JJ.parquet : cartes absentes du dernier catalogue, les autres jours s'il y en a.
         run: |
           # Une erreur de jq doit faire échouer l'étape, pas passer pour « rien à envoyer ».

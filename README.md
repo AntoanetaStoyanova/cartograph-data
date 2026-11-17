@@ -6,7 +6,7 @@ Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartog
 
 - **Catalogue**, dans la Release `catalogue`, sans aucun prix ni aucune image (seulement les liens vers les images) :
   - `cards-AAAA-MM-JJ.parquet` : catalogue complet, chaque lundi ;
-  - `sets-AAAA-MM-JJ.parquet` : sets de chaque langue avec date de sortie, série et sigle, chaque lundi ;
+  - `sets-AAAA-MM-JJ.parquet` : sets de chaque langue avec date de sortie, série et sigle, chaque jour ;
   - `new-cards-AAAA-MM-JJ.parquet` : fiches des cartes absentes du dernier catalogue complet, les autres jours, seulement s'il y en a (reprises chaque jour jusqu'au lundi).
 - **Résumés d'exécution** : nombres de cartes, échecs et fichiers écrits, sans prix.
 - **Manifestes** : un `manifest/AAAA/AAAA-MM-JJ.json` commité par chaque exécution (voir « Manifeste »).
