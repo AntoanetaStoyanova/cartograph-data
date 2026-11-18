@@ -1,13 +1,14 @@
 # cartograph-data
 
-Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartograph) : il contient le workflow qui collecte chaque jour les prix et les nouvelles cartes, et chaque lundi le catalogue et les sets des cartes Pokémon depuis [TCGdex](https://tcgdex.dev). Le code du collecteur vit dans `cartograph` et est installé à chaque exécution.
+Dépôt de données de [cartograph](https://github.com/AntoanetaStoyanova/cartograph) : il contient le workflow qui collecte chaque jour les prix, les sets et le catalogue des cartes Pokémon depuis [TCGdex](https://tcgdex.dev). Le code du collecteur vit dans `cartograph` et est installé à chaque exécution.
 
 ## Ce qui est publié
 
 - **Catalogue**, dans la Release `catalogue`, sans aucun prix ni aucune image (seulement les liens vers les images) :
-  - `cards-AAAA-MM-JJ.parquet` : catalogue complet, chaque lundi ;
+  - `cards-AAAA-MM-JJ.parquet` : catalogue complet, mis à jour chaque jour à partir de celui de la veille ; les cartes que l'API ne liste plus restent, avec leur date de disparition (`removed_on`). La Release ne garde que le plus récent et ceux des lundis (historique hebdomadaire) ;
+  - `card-changes-AAAA-MM-JJ.parquet` : cartes nouvelles, modifiées, disparues ou revenues du jour (`change_type`), avec leur ligne du jour, chaque jour (vide s'il n'y a aucun changement) ;
   - `sets-AAAA-MM-JJ.parquet` : sets de chaque langue avec date de sortie, série et sigle, chaque jour ;
-  - `new-cards-AAAA-MM-JJ.parquet` : fiches des cartes absentes du dernier catalogue complet, les autres jours, seulement s'il y en a (reprises chaque jour jusqu'au lundi).
+  - `new-cards-AAAA-MM-JJ.parquet` : fiches des cartes absentes du catalogue de la veille, seulement s'il y en a.
 - **Résumés d'exécution** : nombres de cartes, échecs et fichiers écrits, sans prix.
 - **Manifestes** : un `manifest/AAAA/AAAA-MM-JJ.json` commité par chaque exécution (voir « Manifeste »).
 
@@ -17,7 +18,7 @@ Chaque exécution commite `manifest/AAAA/AAAA-MM-JJ.json` (auteur `github-action
 
 - `date`, `run_id` : jour de la collecte (UTC) et exécution GitHub Actions ;
 - `summary` : `false` si la collecte n'a écrit aucun résumé (`steps` et `files` sont alors vides) ;
-- `steps` : par étape (`catalogue`, `sets`, `new_cards`, `prices`), `status`, `fetched` (cartes, sets ou produits récupérés), `failed` (nombre en échec) ;
+- `steps` : par étape (`catalogue`, `sets`, `new_cards`, `prices`), `status`, `fetched` (cartes, sets ou produits récupérés ; pour `catalogue` un jour sans collecte complète, fiches relues par la rotation), `failed` (nombre en échec) ;
 - `files` : par fichier, `name`, `release` (Release de destination), `rows`, `bytes`, `sha256` (`null` si le fichier manquait sur la machine, il n'est alors pas envoyé) ;
 - `repo_kib` : taille de ce dépôt selon GitHub, en Kio (`-1` si GitHub ne l'a pas donnée).
 
@@ -27,8 +28,8 @@ Les étapes d'envoi lisent `files` : un fichier part dans la Release que donne l
 
 - **Chaque jour à 03:17 UTC**, la tâche cron-job.org « Collecte cartograph » appelle l'API GitHub `workflow_dispatch` de `collect.yml` (réglages et jeton dans « Secrets, variables et services », plus bas ; le jeton expire le 30 octobre 2027). GitHub Actions exécute la collecte.
 - **Pas de cron GitHub** (`on: schedule`) : GitHub ne garantit pas ses déclenchements, et celui de 03:17 UTC n'est pas parti les 29 et 30 octobre 2026.
-- **Paramètres** : l'appel de cron-job.org n'en envoie aucun, les valeurs par défaut s'appliquent. `catalogue` vaut `auto` (catalogue le lundi, en UTC), `oui` ou `non` pour forcer ; `prices` vaut `true` ; `languages` vide (toutes) ; `code_ref` vaut `main`.
-- **Relance manuelle** : onglet *Actions*, `Collecte`, *Run workflow*, ou `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`. Relancer le même jour remplace les fichiers du jour. Un lundi, `auto` relance aussi le catalogue (2 h 30 à 3 h 15, prix lus dans ses fiches) : choisir `non` pour les prix seuls (`-f catalogue=non`).
+- **Paramètres** : l'appel de cron-job.org n'en envoie aucun, les valeurs par défaut s'appliquent. `catalogue` vaut `non` (catalogue de la veille mis à jour), `oui` pour la collecte complète (2 h 30 à 3 h 15, prix lus dans ses fiches), seulement à la main pour un amorçage ou une réparation ; `prices` vaut `true` ; `languages` vide (toutes) ; `code_ref` vaut `main`.
+- **Relance manuelle** : onglet *Actions*, `Collecte`, *Run workflow*, ou `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data` (`-f catalogue=oui` pour la collecte complète). Relancer le même jour remplace les fichiers du jour et repart du catalogue de la veille.
 
 ## Surveillance
 
@@ -71,7 +72,7 @@ Après une longue pause ou une alerte qui dure, dans cet ordre :
 3. **Version de l'API GitHub** : `2022-11-28` est dépréciée depuis le 10 mars 2026 et ne sera plus acceptée après le 10 mars 2028. Avant cette date, ou si l'appel répond par une erreur de version, mettre une version prise en charge dans l'en-tête `X-GitHub-Api-Version` de la tâche cron-job.org (liste sur <https://docs.github.com/rest/about-the-rest-api/api-versions>).
 4. **healthchecks.io** : le contrôle doit exister avec les réglages ci-dessus. S'il a été recréé, remplacer le secret `HEALTHCHECKS_PING_URL`.
 5. **cron-job.org** : réactiver la tâche (cron-job.org la désactive après des échecs répétés), puis la tester avec son bouton de test : réponse `204`, et une exécution `workflow_dispatch` apparaît dans l'onglet *Actions*.
-6. **Exécution de contrôle** : laisser finir l'exécution lancée par ce test (≈ 1 h 15, 2 h 30 à 3 h 15 un lundi avec le catalogue). Elle doit réussir, publier ses fichiers du jour et repasser le contrôle healthchecks.io au vert. Sans test cron-job.org, la lancer à la main : `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`, jamais avec une liste `languages` réduite, qui remplacerait les fichiers du jour par des fichiers incomplets.
+6. **Exécution de contrôle** : laisser finir l'exécution lancée par ce test (≈ 1 h 15). Si le dernier `cards-*` de la Release est trop ancien, lancer une fois la collecte complète (`-f catalogue=oui`, 2 h 30 à 3 h 15). Elle doit réussir, publier ses fichiers du jour et repasser le contrôle healthchecks.io au vert. Sans test cron-job.org, la lancer à la main : `gh workflow run collect.yml -R AntoanetaStoyanova/cartograph-data`, jamais avec une liste `languages` réduite, qui remplacerait les fichiers du jour par des fichiers incomplets.
 
 ## Ce qui n'est pas publié
 
