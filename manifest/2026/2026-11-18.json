@@ -2,48 +2,62 @@
   "date": "2026-11-18",
   "files": [
     {
+      "bytes": 10103633,
+      "name": "cards-2026-11-18.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 59410,
+      "sha256": "747e723ed3d9d3df0baac914eb371840f53ce9fc4931ec55479de8f30c9741d4"
+    },
+    {
+      "bytes": 15221,
+      "name": "card-changes-2026-11-18.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 10,
+      "sha256": "ef48b5c3059ca5eafedfa554adbff6d5ed6e22361956e85fc1a8e2dfeae71e08"
+    },
+    {
       "bytes": 49214,
       "name": "sets-2026-11-18.parquet",
       "release": "cartograph-data/catalogue",
       "rows": 628,
-      "sha256": "f7899a25bbd56efa6fbef49423de5995c17cd64bb885cc9288c77093da48917d"
+      "sha256": "2ef6557db17eef3b95a024464bd13bb0d2bff136f82398018b897499e0411faa"
     },
     {
-      "bytes": 13856,
+      "bytes": 14966,
       "name": "new-cards-2026-11-18.parquet",
       "release": "cartograph-data/catalogue",
       "rows": 10,
-      "sha256": "034c11f340ce59d0647f9cc3ebe7b6e6d9db10800b4a2a6b5eb8756368f0390e"
+      "sha256": "d81b2a12b71a3b8319df7d68a5787406c7573893f159d1c2096915bab3b93d2c"
     },
     {
-      "bytes": 4078,
+      "bytes": 4068,
       "name": "new-cards-2026-11-18.json.gz",
       "release": "cartograph-prices/data-2026-11",
       "rows": 10,
-      "sha256": "2344c12a01a1080a51a5b31169b739ae551a87e7f0a4596da86cea04318f6c3f"
+      "sha256": "5aa614bd7a46318d07a0ed5620c114f7050748a263b533e316779f63a22aae82"
     },
     {
-      "bytes": 1399470,
+      "bytes": 1393949,
       "name": "prices-2026-11-18.parquet",
       "release": "cartograph-prices/data-2026-11",
-      "rows": 30279,
-      "sha256": "766f010391ef05d1e3b2fbf7018b6a814bde6741a1d52d9b83f95d26b3ee5b04"
+      "rows": 30278,
+      "sha256": "cd4f9d3f7508d0c985503ed177728ae89075ec50946db63913ccaf6c929b8add"
     },
     {
-      "bytes": 1655751,
+      "bytes": 1650885,
       "name": "prices-2026-11-18.json.gz",
       "release": "cartograph-prices/data-2026-11",
-      "rows": 30279,
-      "sha256": "0290d79cb99b24d49b7bfc40794f7e313bd7430755862ea8779c9ad3e56d4216"
+      "rows": 30278,
+      "sha256": "67c6997b6000475ea82be2f5f8f5c20ee8d3e9e5956329362ac0574598b33fd0"
     }
   ],
-  "repo_kib": 54,
-  "run_id": 44229318099,
+  "repo_kib": 58,
+  "run_id": 44314516180,
   "steps": {
     "catalogue": {
       "failed": 0,
-      "fetched": 0,
-      "status": "skipped"
+      "fetched": 1000,
+      "status": "ok"
     },
     "new_cards": {
       "failed": 0,
@@ -51,8 +65,8 @@
       "status": "ok"
     },
     "prices": {
-      "failed": 0,
-      "fetched": 30279,
+      "failed": 1,
+      "fetched": 30278,
       "status": "ok"
     },
     "sets": {
