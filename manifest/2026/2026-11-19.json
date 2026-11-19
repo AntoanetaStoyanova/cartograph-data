@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-19",
+  "files": [
+    {
+      "bytes": 10103961,
+      "name": "cards-2026-11-19.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 59410,
+      "sha256": "77ceb001ed7b632f8b7ca6734059aab115d527c34beffc5fba292d61bf2b5cba"
+    },
+    {
+      "bytes": 2906,
+      "name": "card-changes-2026-11-19.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 0,
+      "sha256": "f9d4264a7afcf27b15006bafddc25f18962e8b4caa0d036c63ad26f80df852b3"
+    },
+    {
+      "bytes": 49214,
+      "name": "sets-2026-11-19.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 628,
+      "sha256": "c25ccb8124b240677a5eb9296ccb64821e2d1fdec26d6a504ba423e24100a26b"
+    },
+    {
+      "bytes": 1391284,
+      "name": "prices-2026-11-19.parquet",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 30278,
+      "sha256": "89e36427efaf733191228235c276a32da77988fb54985cf793ba9002751721e3"
+    },
+    {
+      "bytes": 1644971,
+      "name": "prices-2026-11-19.json.gz",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 30278,
+      "sha256": "5614782839d7c181e65e66c4e9b5dda32e398e954d0d8cf3352ccfdc4bd93ed3"
+    }
+  ],
+  "repo_kib": 60,
+  "run_id": 44450348025,
+  "steps": {
+    "catalogue": {
+      "failed": 0,
+      "fetched": 1000,
+      "status": "ok"
+    },
+    "new_cards": {
+      "failed": 0,
+      "fetched": 0,
+      "status": "ok"
+    },
+    "prices": {
+      "failed": 1,
+      "fetched": 30278,
+      "status": "ok"
+    },
+    "sets": {
+      "failed": 0,
+      "fetched": 628,
+      "status": "ok"
+    }
+  },
+  "summary": true
+}
