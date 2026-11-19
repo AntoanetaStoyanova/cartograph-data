@@ -2,43 +2,57 @@
   "date": "2026-11-19",
   "files": [
     {
-      "bytes": 10103961,
+      "bytes": 10103638,
       "name": "cards-2026-11-19.parquet",
       "release": "cartograph-data/catalogue",
       "rows": 59410,
-      "sha256": "77ceb001ed7b632f8b7ca6734059aab115d527c34beffc5fba292d61bf2b5cba"
+      "sha256": "0e8926f804f53056a84f3d894704bfae95d9d909f30bb6dbe448b57b949aad6c"
     },
     {
-      "bytes": 2906,
+      "bytes": 15221,
       "name": "card-changes-2026-11-19.parquet",
       "release": "cartograph-data/catalogue",
-      "rows": 0,
-      "sha256": "f9d4264a7afcf27b15006bafddc25f18962e8b4caa0d036c63ad26f80df852b3"
+      "rows": 10,
+      "sha256": "0bd7060f5019b0af6977d80acdd2611e078d13e08a7c9c993a3238e5fe16d787"
     },
     {
       "bytes": 49214,
       "name": "sets-2026-11-19.parquet",
       "release": "cartograph-data/catalogue",
       "rows": 628,
-      "sha256": "c25ccb8124b240677a5eb9296ccb64821e2d1fdec26d6a504ba423e24100a26b"
+      "sha256": "81977fa2ee7adf763c0cbdd2d4ba2a443ab862ed64fbf47469430304570fd03c"
     },
     {
-      "bytes": 1391284,
+      "bytes": 14966,
+      "name": "new-cards-2026-11-19.parquet",
+      "release": "cartograph-data/catalogue",
+      "rows": 10,
+      "sha256": "18a69cb44823690c21c25f9bbda02f0def269556d547e2c89bc5dc827d393a7c"
+    },
+    {
+      "bytes": 4066,
+      "name": "new-cards-2026-11-19.json.gz",
+      "release": "cartograph-prices/data-2026-11",
+      "rows": 10,
+      "sha256": "23f794afcb1682af5c7b2b6ca20aefa00c2f409fdb5ea5cef85d829ae785a246"
+    },
+    {
+      "bytes": 1384957,
       "name": "prices-2026-11-19.parquet",
       "release": "cartograph-prices/data-2026-11",
-      "rows": 30278,
-      "sha256": "89e36427efaf733191228235c276a32da77988fb54985cf793ba9002751721e3"
+      "rows": 30279,
+      "sha256": "f21324bc38b623af206230e0bd77d308470034b8a4423ff700cd9bb1094c92e5"
     },
     {
-      "bytes": 1644971,
+      "bytes": 1643947,
       "name": "prices-2026-11-19.json.gz",
       "release": "cartograph-prices/data-2026-11",
-      "rows": 30278,
-      "sha256": "5614782839d7c181e65e66c4e9b5dda32e398e954d0d8cf3352ccfdc4bd93ed3"
+      "rows": 30279,
+      "sha256": "5ea7d9d4d462cbf5efdcb143ef70669d20cc2e5ff0ed83dc0606fe974cb2cb47"
     }
   ],
-  "repo_kib": 60,
-  "run_id": 44450348025,
+  "repo_kib": 62,
+  "run_id": 44561633352,
   "steps": {
     "catalogue": {
       "failed": 0,
@@ -47,12 +61,12 @@
     },
     "new_cards": {
       "failed": 0,
-      "fetched": 0,
+      "fetched": 10,
       "status": "ok"
     },
     "prices": {
-      "failed": 1,
-      "fetched": 30278,
+      "failed": 0,
+      "fetched": 30279,
       "status": "ok"
     },
     "sets": {
